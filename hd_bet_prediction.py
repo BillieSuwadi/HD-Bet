@@ -3,7 +3,7 @@ from multiprocessing import Pool
 import sys
 import SimpleITK as sitk
 import torch
-from batchgenerators.utilities.file_and_folder_operations import nifti_files, join, maybe_mkdir_p, isdir
+from batchgenerators.utilities.file_and_folder_operations import join, maybe_mkdir_p, isdir
 sys.stdout = open(os.devnull, 'w')
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
 sys.stdout = sys.__stdout__
@@ -18,6 +18,15 @@ def apply_bet(img, bet, out_fname):
     out = sitk.GetImageFromArray(img_npy)
     out.CopyInformation(img_itk)
     sitk.WriteImage(out, out_fname)
+
+
+def find_nifti_files_recursive(folder: str):
+    nifti_paths = []
+    for root, _, files in os.walk(folder):
+        for file_name in files:
+            if file_name.endswith('.nii.gz'):
+                nifti_paths.append(join(root, file_name))
+    return sorted(nifti_paths)
 
 
 def get_hdbet_predictor(
@@ -53,10 +62,16 @@ def hdbet_predict(
 ):
     # find input file or files
     if os.path.isdir(input_file_or_folder):
-        input_files = nifti_files(input_file_or_folder)
+        input_files = find_nifti_files_recursive(input_file_or_folder)
+        assert len(input_files) > 0, f'No .nii.gz files found in {input_file_or_folder}'
         # output_file_or_folder must be folder in this case
         maybe_mkdir_p(output_file_or_folder)
-        output_files = [join(output_file_or_folder, os.path.basename(i)) for i in input_files]
+        output_files = [
+            join(output_file_or_folder, os.path.relpath(i, input_file_or_folder))
+            for i in input_files
+        ]
+        for output_file in output_files:
+            maybe_mkdir_p(os.path.dirname(output_file))
         brain_mask_files = [i[:-7] + '_bet.nii.gz' for i in output_files]
     else:
         assert not isdir(output_file_or_folder), 'If input is a single file then output must be a filename, not a directory'

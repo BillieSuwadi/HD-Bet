@@ -21,9 +21,11 @@ def main():
     parser.add_argument('-i', '--input', help='input. Can be either a single file name or an input folder. If file: must be '
                                        'nifti (.nii.gz) and can only be 3D. No support for 4d images, use fslsplit to '
                                        'split 4d sequences into 3d images. If folder: all files ending with .nii.gz '
-                                       'within that folder will be brain extracted.', required=True, type=str)
+                                       'within that folder and its subfolders will be brain extracted recursively.',
+                        required=True, type=str)
     parser.add_argument('-o', '--output', help='output. Can be either a filename or a folder. If it does not exist, the folder'
-                                     ' will be created', required=False, type=str)
+                                     ' will be created. For folder input, the input directory structure will be preserved '
+                                     'under the output folder.', required=False, type=str)
     parser.add_argument('-device', default='cuda', type=str, required=False,
                         help='used to set on which device the prediction will run. Can be \'cuda\' (=GPU), \'cpu\' or '
                              '\'mps\'. Default: cuda')
